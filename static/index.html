@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini-Redis | FAANG In-Memory LRU Cache</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="bolt">⚡</span>
+                <div>
+                    <h1>Mini-Redis Cache</h1>
+                    <p class="subtitle">FAANG-Tier In-Memory LRU Eviction & Telemetry Engine</p>
+                </div>
+            </div>
+            <div class="status-badge">
+                <span class="dot green"></span> System Online (O(1) Engine)
+            </div>
+        </header>
+
+        <!-- Telemetry Cards Grid -->
+        <section class="metrics-grid">
+            <div class="card metric-card">
+                <h3>Capacity Used</h3>
+                <div class="metric-val" id="metric-capacity">0 / 5</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="capacity-progress" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div class="card metric-card">
+                <h3>Cache Hit Rate</h3>
+                <div class="metric-val highlight" id="metric-hitrate">0.0%</div>
+                <p class="metric-sub" id="hit-miss-count">Hits: 0 | Misses: 0</p>
+            </div>
+            <div class="card metric-card">
+                <h3>Total Reads</h3>
+                <div class="metric-val" id="metric-reads">0</div>
+                <p class="metric-sub">sub-millisecond O(1) lookups</p>
+            </div>
+            <div class="card metric-card">
+                <h3>Total Writes</h3>
+                <div class="metric-val" id="metric-writes">0</div>
+                <p class="metric-sub">O(1) doubly linked updates</p>
+            </div>
+        </section>
+
+        <!-- Live LRU Queue Visualizer -->
+        <section class="card queue-section">
+            <div class="section-header">
+                <h2>📊 Live Memory Queue (Ordered MRU ➔ LRU)</h2>
+                <span class="badge info-badge">Head = Most Recently Used | Tail = Next to Evict</span>
+            </div>
+            <div class="queue-container" id="queue-container">
+                <!-- Dynamic Queue Cards Will Appear Here -->
+                <div class="empty-state">Cache is currently empty. Use the playground below to set keys!</div>
+            </div>
+        </section>
+
+        <!-- Interactive Playground & Controls -->
+        <div class="two-column">
+            <!-- Form 1: SET Key -->
+            <section class="card form-card">
+                <h2>📥 SET Key-Value</h2>
+                <form id="set-form">
+                    <div class="form-group">
+                        <label for="set-key">Key Name</label>
+                        <input type="text" id="set-key" placeholder="e.g. user_101" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="set-val">Value</label>
+                        <input type="text" id="set-val" placeholder="e.g. Akanksha Maurya" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="set-ttl">TTL (Seconds - Optional)</label>
+                        <input type="number" id="set-ttl" placeholder="e.g. 10" min="1">
+                    </div>
+                    <button type="submit" class="btn btn-primary">⚡ SET Key (O(1))</button>
+                </form>
+            </section>
+
+            <!-- Form 2: GET & DELETE -->
+            <section class="card form-card">
+                <h2>🔎 GET or DELETE Key</h2>
+                <div class="form-group">
+                    <label for="query-key">Target Key Name</label>
+                    <input type="text" id="query-key" placeholder="e.g. user_101">
+                </div>
+                <div class="btn-group">
+                    <button id="btn-get" class="btn btn-success">🔍 GET Key</button>
+                    <button id="btn-delete" class="btn btn-danger">🗑️ DELETE Key</button>
+                </div>
+                <div id="query-result" class="result-box hidden"></div>
+            </section>
+        </div>
+
+        <!-- Stress Test & Benchmarking Section -->
+        <section class="card benchmark-card">
+            <div class="benchmark-header">
+                <div>
+                    <h2>🚀 Load & Stress Test Simulator</h2>
+                    <p>Simulate 1,000 high-frequency concurrent ops to measure system throughput and latency.</p>
+                </div>
+                <button id="btn-benchmark" class="btn btn-warning">⚡ Run 1,000 Ops Benchmark</button>
+            </div>
+            <div id="benchmark-results" class="benchmark-grid hidden">
+                <div class="bench-item">
+                    <span class="bench-label">Total Ops Executed</span>
+                    <span class="bench-val" id="bench-ops">-</span>
+                </div>
+                <div class="bench-item">
+                    <span class="bench-label">Throughput</span>
+                    <span class="bench-val highlight" id="bench-throughput">- ops/sec</span>
+                </div>
+                <div class="bench-item">
+                    <span class="bench-label">Average Latency</span>
+                    <span class="bench-val" id="bench-latency">- ms</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
