@@ -1,6 +1,9 @@
 import time
 import threading
-from typing import Any, Optional, Dict, List
+import logging
+from typing import Any, Optional, Dict, List, Callable
+
+logger = logging.getLogger(__name__)
 
 class Node:
     """
@@ -8,6 +11,11 @@ class Node:
     Holds the key, value, TTL expiration timestamp, and pointers to prev/next nodes.
     """
     def __init__(self, key: str, value: Any, ttl_seconds: Optional[float] = None):
+        if not isinstance(key, str) or not key or len(key) > 256:
+            raise ValueError("Key must be a non-empty string up to 256 characters.")
+        if ttl_seconds is not None and ttl_seconds <= 0:
+            raise ValueError("TTL must be a positive number")
+            
         self.key = key
         self.value = value
         self.prev: Optional['Node'] = None
@@ -28,14 +36,31 @@ class LRUCache:
     Combines a HashMap (for O(1) lookups) with a Doubly Linked List (for O(1) eviction ordering).
     Includes thread-safety (Locking) and background TTL auto-expiry.
     """
-    def __init__(self, capacity: int = 5):
+    def __init__(self, capacity: int = 5, on_evict: Optional[Callable] = None):
+        if capacity < 1:
+            raise ValueError("Capacity must be at least 1")
+            
         self.capacity = capacity
         self.cache: Dict[str, Node] = {}
+        self.on_evict = on_evict
 
         # Dummy Sentinel Nodes (Head = Most Recently Used, Tail = Least Recently Used)
         # Using dummy nodes avoids edge-case checks for empty lists!
-        self.head = Node("HEAD_SENTINEL", None)
-        self.tail = Node("TAIL_SENTINEL", None)
+        # Bypass validation by creating an empty instance and mutating
+        self.head = Node.__new__(Node)
+        self.head.key = "HEAD_SENTINEL"
+        self.head.value = None
+        self.head.prev = None
+        self.head.next = None
+        self.head.expires_at = None
+        
+        self.tail = Node.__new__(Node)
+        self.tail.key = "TAIL_SENTINEL"
+        self.tail.value = None
+        self.tail.prev = None
+        self.tail.next = None
+        self.tail.expires_at = None
+        
         self.head.next = self.tail
         self.tail.prev = self.head
 
@@ -50,8 +75,21 @@ class LRUCache:
 
         # Background TTL Sweeper Thread
         self.running = True
+        logger.info("TTL sweeper thread started")
         self.ttl_thread = threading.Thread(target=self._ttl_sweeper_loop, daemon=True)
         self.ttl_thread.start()
+
+    def __len__(self) -> int:
+        """Returns the number of items currently in the cache."""
+        with self.lock:
+            return len(self.cache)
+
+    def __contains__(self, key: str) -> bool:
+        """Supports 'in' operator. Does NOT count as a read or move items."""
+        with self.lock:
+            if key not in self.cache:
+                return False
+            return not self.cache[key].is_expired()
 
     # ==================== Doubly Linked List Helpers (O(1)) ====================
 
@@ -95,6 +133,7 @@ class LRUCache:
             self.total_reads += 1
             if key not in self.cache:
                 self.misses += 1
+                logger.debug("Cache GET: key=%s, hit=%s", key, False)
                 return None
 
             node = self.cache[key]
@@ -104,11 +143,13 @@ class LRUCache:
                 self.misses += 1
                 self._remove_node(node)
                 del self.cache[key]
+                logger.debug("Cache GET: key=%s, hit=%s", key, False)
                 return None
 
             # Hit! Move to front of LRU queue
             self.hits += 1
             self._move_to_front(node)
+            logger.debug("Cache GET: key=%s, hit=%s", key, True)
             return node.value
 
     def set(self, key: str, value: Any, ttl_seconds: Optional[float] = None) -> Dict[str, Any]:
@@ -120,6 +161,7 @@ class LRUCache:
         with self.lock:
             self.total_writes += 1
             evicted_item = None
+            logger.debug("Cache SET: key=%s, ttl=%s", key, ttl_seconds)
 
             # If key already exists, update its value and move to front
             if key in self.cache:
@@ -134,6 +176,9 @@ class LRUCache:
                     if lru_node and lru_node.key in self.cache:
                         del self.cache[lru_node.key]
                         evicted_item = {"key": lru_node.key, "value": lru_node.value}
+                        logger.info("LRU eviction: key=%s", lru_node.key)
+                        if self.on_evict:
+                            self.on_evict(lru_node.key, lru_node.value)
 
                 # Create new node and add to front
                 new_node = Node(key, value, ttl_seconds)
@@ -153,7 +198,9 @@ class LRUCache:
         Time Complexity: O(1)
         """
         with self.lock:
-            if key in self.cache:
+            found = key in self.cache
+            logger.debug("Cache DELETE: key=%s, found=%s", key, found)
+            if found:
                 node = self.cache[key]
                 self._remove_node(node)
                 del self.cache[key]
@@ -189,6 +236,36 @@ class LRUCache:
                 "items": items
             }
 
+    def clear(self) -> None:
+        """Removes all items from the cache and resets metrics."""
+        with self.lock:
+            self.cache.clear()
+            self.head.next = self.tail
+            self.tail.prev = self.head
+            self.hits = 0
+            self.misses = 0
+            self.total_reads = 0
+            self.total_writes = 0
+            logger.info("Cache cleared")
+
+    def keys(self) -> List[str]:
+        """Returns a list of all non-expired keys in MRU order."""
+        with self.lock:
+            result = []
+            curr = self.head.next
+            while curr and curr != self.tail:
+                if not curr.is_expired():
+                    result.append(curr.key)
+                curr = curr.next
+            return result
+
+    def stop(self) -> None:
+        """Stops the TTL sweeper thread and performs graceful shutdown."""
+        self.running = False
+        if self.ttl_thread.is_alive():
+            self.ttl_thread.join()
+        logger.info("TTL sweeper thread stopped")
+
     # ==================== Background TTL Sweeper ====================
 
     def _ttl_sweeper_loop(self):
@@ -197,7 +274,11 @@ class LRUCache:
             time.sleep(1.0)  # Check every second
             with self.lock:
                 expired_keys = [k for k, v in self.cache.items() if v.is_expired()]
-                for key in expired_keys:
-                    node = self.cache[key]
-                    self._remove_node(node)
-                    del self.cache[key]
+                if expired_keys:
+                    logger.info("TTL expired: %d keys swept", len(expired_keys))
+                    for key in expired_keys:
+                        node = self.cache[key]
+                        self._remove_node(node)
+                        del self.cache[key]
+                        if self.on_evict:
+                            self.on_evict(key, node.value)

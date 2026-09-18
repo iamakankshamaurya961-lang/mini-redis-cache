@@ -97,7 +97,14 @@ async function handleSet(e) {
         document.getElementById("set-ttl").value = "";
 
         fetchStats();
+
+        // Show eviction toast if an item was evicted
+        if (data.evicted) {
+            showToast(`🔄 Evicted: <code>${escapeHtml(data.evicted.key)}</code> (LRU)`, 'warning');
+        }
+        showToast(`✅ Key <code>${escapeHtml(key)}</code> set successfully`, 'success');
     } catch (err) {
+        showToast('❌ Failed to SET key. Server error.', 'error');
         console.error("SET failed:", err);
     }
 }
@@ -122,6 +129,7 @@ async function handleGet() {
         }
         fetchStats();
     } catch (err) {
+        showToast('❌ Failed to GET key. Server error.', 'error');
         console.error("GET failed:", err);
     }
 }
@@ -147,6 +155,7 @@ async function handleDelete() {
         }
         fetchStats();
     } catch (err) {
+        showToast('❌ Failed to DELETE key. Server error.', 'error');
         console.error("DELETE failed:", err);
     }
 }
@@ -174,6 +183,7 @@ async function handleBenchmark() {
 
         fetchStats();
     } catch (err) {
+        showToast('❌ Benchmark failed. Server error.', 'error');
         console.error("Benchmark failed:", err);
     } finally {
         btn.disabled = false;
@@ -184,3 +194,21 @@ async function handleBenchmark() {
 function escapeHtml(str) {
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
+
+// Toast notification system
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = message;
+    document.body.appendChild(toast);
+    
+    // Trigger animation
+    requestAnimationFrame(() => toast.classList.add('show'));
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+

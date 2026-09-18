@@ -1,0 +1,28 @@
+[project]
+name = "mini-redis-cache"
+version = "1.0.0"
+description = "A high-performance, thread-safe in-memory LRU cache engine with O(1) operations, TTL auto-expiry, and a real-time telemetry dashboard."
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Akanksha Maurya"}]
+readme = "README.md"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true

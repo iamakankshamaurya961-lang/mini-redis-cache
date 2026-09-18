@@ -1,0 +1,3 @@
+# Mini-Redis Cache - Runtime Dependencies
+# This project intentionally uses zero third-party dependencies.
+# All functionality is built with Python 3 standard library only.
