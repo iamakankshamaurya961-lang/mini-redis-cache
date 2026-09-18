@@ -15,21 +15,21 @@ A production-grade, thread-safe **In-Memory Key-Value Cache Engine** built with 
 ```mermaid
 graph LR
     subgraph Client
-        A[Browser / API Client]
+        A["Browser / API Client"]
     end
 
     subgraph HTTP Server
-        B[REST API Layer<br/>main.py]
+        B["REST API Layer — main.py"]
     end
 
     subgraph Cache Engine
-        C[HashMap<br/>O&#40;1&#41; Lookup]
-        D[Doubly Linked List<br/>O&#40;1&#41; Eviction Order]
-        E[TTL Sweeper<br/>Background Thread]
+        C["HashMap — O(1) Lookup"]
+        D["Doubly Linked List — O(1) Eviction"]
+        E["TTL Sweeper — Background Thread"]
     end
 
     subgraph Dashboard
-        F[Live Telemetry UI<br/>HTML/CSS/JS]
+        F["Live Telemetry UI — HTML/CSS/JS"]
     end
 
     A -->|HTTP Requests| B
