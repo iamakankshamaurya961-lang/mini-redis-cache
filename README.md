@@ -10,6 +10,14 @@ A production-grade, thread-safe **In-Memory Key-Value Cache Engine** built with 
 
 ---
 
+## 📸 Real-Time Telemetry Dashboard
+
+![Mini-Redis Telemetry Dashboard](docs/dashboard.png)
+
+*Interactive web dashboard with real-time capacity monitoring, cache hit-rate telemetry, visual MRU-to-LRU eviction queue, and key-value playground.*
+
+---
+
 ## 🏗️ Architecture
 
 ```mermaid
