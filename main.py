@@ -19,7 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger("mini-redis")
 
 CACHE_CAPACITY = int(os.environ.get("CACHE_CAPACITY", "5"))
-SERVER_PORT = int(os.environ.get("SERVER_PORT", "8000"))
+SERVER_PORT = int(os.environ.get("PORT", os.environ.get("SERVER_PORT", "8000")))
 MAX_KEY_LENGTH = 256
 MAX_VALUE_SIZE = 1024 * 1024  # 1MB
 
