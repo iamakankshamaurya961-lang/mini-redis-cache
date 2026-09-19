@@ -83,8 +83,8 @@ def benchmark_memory_usage():
     tracemalloc.stop()
 
     print(f"  Entries:        {NUM_ENTRIES:>10,}")
-    print(f"  Traced Memory:  {total_mb:>10.2f} MB")
-    print(f"  Peak Memory:    {peak / (1024 * 1024):>10.2f} MB")
+    print(f"  Traced Memory:  {total_mb:>10.2f} MiB")
+    print(f"  Peak Memory:    {peak / (1024 * 1024):>10.2f} MiB")
     print(f"  Per Entry:      {total_memory / NUM_ENTRIES:>10.0f} bytes")
 
     cache.stop()
@@ -208,8 +208,8 @@ if __name__ == "__main__":
     print(f"  Single-threaded SET:     {set_ops/1e6:.2f}M ops/sec")
     print(f"  Single-threaded DELETE:  {del_ops/1e6:.2f}M ops/sec")
     print(f"  Mixed workload (80/20):  {mixed_ops/1e6:.2f}M ops/sec")
-    print(f"  Memory ({num_entries:,} entries):  {mem_mb:.2f}MB traced")
+    print(f"  Memory ({num_entries:,} entries):  {mem_mb:.2f} MiB traced")
     print(f"  8-thread GET throughput: {mt_throughput/1e3:.0f}K ops/sec (GIL-bound)")
     print(f"  Eviction callback SET:   {evict_ops/1e3:.0f}K ops/sec")
-    print("  Test suite:              72 tests, 93% coverage")
+    print("  Test suite:              72 tests, 86% coverage (99% engine)")
     print("=" * 70)
