@@ -2,6 +2,7 @@
 Shared pytest fixtures for Mini-Redis Cache test suite.
 """
 import pytest
+
 from lru_cache import LRUCache
 
 

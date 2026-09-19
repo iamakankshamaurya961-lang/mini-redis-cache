@@ -3,22 +3,21 @@ API integration tests for the Mini-Redis Cache HTTP server.
 Tests all REST endpoints, error handling, CORS, and validation.
 """
 import json
-import threading
-import time
-from http.server import HTTPServer
-from io import BytesIO
-from unittest.mock import patch
-
-import pytest
 
 # We need to import after setting up the cache, so we patch env vars
 import os
+import threading
+import time
+from http.server import HTTPServer
+
+import pytest
 
 os.environ["CACHE_CAPACITY"] = "5"
 os.environ["SERVER_PORT"] = "9999"
 
-from main import CacheAPIHandler, cache
 from http.client import HTTPConnection
+
+from main import CacheAPIHandler, cache
 
 
 @pytest.fixture(scope="module")
@@ -67,12 +66,12 @@ class TestHealthEndpoint:
         assert data["status"] == "healthy"
 
     def test_health_has_uptime(self, test_server: HTTPServer) -> None:
-        status, data = _request("GET", "/api/health")
+        _status, data = _request("GET", "/api/health")
         assert "uptime_seconds" in data
         assert data["uptime_seconds"] >= 0
 
     def test_health_has_cache_info(self, test_server: HTTPServer) -> None:
-        status, data = _request("GET", "/api/health")
+        _status, data = _request("GET", "/api/health")
         assert "cache_size" in data
         assert "cache_capacity" in data
 
@@ -104,7 +103,7 @@ class TestSetEndpoint:
         assert "error" in data
 
     def test_set_empty_body(self, test_server: HTTPServer) -> None:
-        status, data = _request("POST", "/api/set", {})
+        status, _data = _request("POST", "/api/set", {})
         assert status == 400
 
     def test_set_key_too_long(self, test_server: HTTPServer) -> None:
@@ -192,7 +191,7 @@ class TestStatsEndpoint:
         _request("POST", "/api/set", {"key": "a", "value": "1"})
         _request("GET", "/api/get?key=a")     # hit
         _request("GET", "/api/get?key=miss")  # miss
-        status, data = _request("GET", "/api/stats")
+        _status, data = _request("GET", "/api/stats")
         assert data["hits"] >= 1
         assert data["misses"] >= 1
         assert data["total_writes"] >= 1
@@ -216,15 +215,15 @@ class TestBenchmarkEndpoint:
 # =============================================================================
 class TestErrorHandling:
     def test_unknown_get_endpoint(self, test_server: HTTPServer) -> None:
-        status, data = _request("GET", "/api/unknown")
+        status, _data = _request("GET", "/api/unknown")
         assert status == 404
 
     def test_unknown_post_endpoint(self, test_server: HTTPServer) -> None:
-        status, data = _request("POST", "/api/unknown", {})
+        status, _data = _request("POST", "/api/unknown", {})
         assert status == 404
 
     def test_unknown_delete_endpoint(self, test_server: HTTPServer) -> None:
-        status, data = _request("DELETE", "/api/unknown")
+        status, _data = _request("DELETE", "/api/unknown")
         assert status == 404
 
     def test_cors_options(self, test_server: HTTPServer) -> None:

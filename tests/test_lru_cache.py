@@ -2,9 +2,11 @@
 Comprehensive pytest test suite for the LRU Cache Engine.
 Covers: basic ops, eviction, TTL, concurrency, edge cases, new API methods.
 """
-import time
 import threading
+import time
+
 import pytest
+
 from lru_cache import LRUCache, Node
 
 

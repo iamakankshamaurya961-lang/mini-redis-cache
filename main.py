@@ -1,15 +1,14 @@
 import json
-import os
-import time
-import urllib.parse
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from typing import Any, Optional
-
-from lru_cache import LRUCache
-
 import logging
+import os
 import signal
 import sys
+import time
+import urllib.parse
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Any
+
+from lru_cache import LRUCache
 
 # Configure structured logging
 logging.basicConfig(
@@ -168,11 +167,8 @@ class CacheAPIHandler(BaseHTTPRequestHandler):
                 cache.get(f"bench_{(i * 3) % 10}")
 
             elapsed_sec = time.time() - bench_start_time
-            if elapsed_sec > 0:
-                ops_per_sec = round((num_ops * 2) / elapsed_sec, 2)
-            else:
-                ops_per_sec = 0.0
-                
+            ops_per_sec = round(num_ops * 2 / elapsed_sec, 2) if elapsed_sec > 0 else 0.0
+
             avg_latency_ms = round((elapsed_sec / max((num_ops * 2), 1)) * 1000, 4)
 
             self._send_json(200, {
@@ -220,19 +216,20 @@ class CacheAPIHandler(BaseHTTPRequestHandler):
         else:
             self._send_json(404, {"error": f"File {relative_path} not found"})
 
-    def _read_json_body(self) -> Optional[dict]:
+    def _read_json_body(self) -> dict | None:
         content_length_str = self.headers.get("Content-Length", "0")
         try:
             content_length = int(content_length_str)
         except ValueError:
             content_length = 0
-            
+
         if content_length == 0:
             return {}
-            
+
         raw_data = self.rfile.read(content_length)
         try:
-            return json.loads(raw_data.decode("utf-8"))
+            result: dict[str, Any] = json.loads(raw_data.decode("utf-8"))
+            return result
         except json.JSONDecodeError as e:
             logger.error("Failed to parse JSON body: %s", e)
             return None
@@ -245,21 +242,21 @@ class CacheAPIHandler(BaseHTTPRequestHandler):
 def run_server(port: int = SERVER_PORT) -> None:
     server_address = ("", port)
     httpd = HTTPServer(server_address, CacheAPIHandler)
-    
+
     def shutdown_handler(signum: int, frame: Any) -> None:
         logger.info("Received signal %s, shutting down...", signal.Signals(signum).name)
         if hasattr(cache, 'stop'):
             cache.stop()  # Stop the TTL sweeper thread
         httpd.server_close()
         sys.exit(0)
-    
+
     signal.signal(signal.SIGTERM, shutdown_handler)
     signal.signal(signal.SIGINT, shutdown_handler)
-    
+
     logger.info("Mini-Redis Cache Service started on port %d", port)
     logger.info("Dashboard: http://localhost:%d", port)
     logger.info("Health check: http://localhost:%d/api/health", port)
-    
+
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
