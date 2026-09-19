@@ -301,16 +301,13 @@ mypy lru_cache.py main.py --ignore-missing-imports
 
 ---
 
-## 🎯 Interview Talking Points
+## 🏗️ Architecture & Design Decisions
 
-> *"I engineered a thread-safe in-memory cache microservice with sub-millisecond response times. The core uses an O(1) LRU eviction algorithm combining a Hash Map for constant-time lookups and a Doubly Linked List for constant-time eviction ordering. It includes background TTL expiration threads with eviction callbacks, concurrency mutex locks, structured request logging, environment-based configuration, and a comprehensive test suite with >80% coverage. The service is containerized with security best practices (non-root user, health checks) and includes a CI/CD pipeline with linting, type checking, and matrix testing across Python versions."*
-
-### Key Design Decisions to Discuss:
-- **Why HashMap + DLL?** → O(1) for all operations vs O(n) with arrays
-- **Why sentinel nodes?** → Eliminates null-pointer edge cases in list operations
-- **Why background sweeper vs lazy expiry?** → Prevents memory leaks from unaccessed expired keys
-- **Why mutex lock vs RWLock?** → Simpler, sufficient for this workload; discuss trade-offs
-- **Why zero dependencies?** → Demonstrates understanding of fundamentals, not framework reliance
+- **HashMap + Doubly Linked List:** Provides strictly $O(1)$ time complexity for GET, SET, and DELETE operations, avoiding the $O(n)$ eviction scan of array-based caches.
+- **Sentinel Nodes (Head & Tail):** Eliminates boundary condition checks and null-pointer edge cases during pointer reassignment.
+- **Active TTL Sweeper vs. Lazy Expiration:** A background daemon thread actively purges expired keys to prevent memory leaks from unaccessed stale entries, while reads still perform lazy expiration checks.
+- **Thread Synchronization:** A mutex lock (`threading.Lock`) ensures safe concurrent access across multiple reader/writer threads.
+- **Zero External Dependencies for Core Engine:** Built entirely with Python standard library primitives to maintain deterministic performance and minimal overhead.
 
 ---
 
